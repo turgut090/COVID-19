@@ -2,7 +2,7 @@ on:
   push:
   schedule:
       # * is a special character in YAML so you have to quote this string
-      - cron:  '*/15 * * * *'
+      - cron:  '*/59 * * * *'
 
 name: R-CMD
 
@@ -36,7 +36,8 @@ jobs:
 
       - name: Commit files  
         run: |
-          git config --local user.name  ${{ github.actor }}
+          git config --global user.email "turqut.a.314@gmail.com"
+          git config --global user.name ${{ github.actor }}
           git add ./docs
           git commit -m "updated site"
           
