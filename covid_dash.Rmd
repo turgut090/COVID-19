@@ -1,0 +1,192 @@
+---
+title: "Covid-19"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    theme: bootstrap
+---
+
+
+```{r setup, include=FALSE}
+library(dplyr)
+library(highcharter)
+covid = data.table::fread('https://covid.ourworldindata.org/data/owid-covid-data.csv') %>% 
+  mutate(date = as.Date(date)) %>% filter(!location %in% c('World','International'))
+covid2= covid %>% filter(total_cases > 15e3)
+
+parrr = covid %>% select(location,date,starts_with('total'),
+                         population_density:life_expectancy,
+                         -contains('smokers'),-contains('poverty'),
+                         -contains('tests')) %>% 
+  group_by(location) %>% 
+  arrange(desc(date)) %>% 
+  slice(1) %>% ungroup() %>% 
+  select(-date)
+
+parrr2 = purrr::map(seq(nrow(parrr)), function(x) {
+  list(data = t(parrr[x,2:13]), name = paste(pull(parrr[x,1])))
+})
+
+
+deaths = covid %>% group_by(location) %>% 
+  arrange(desc(date)) %>% 
+  slice(1) %>% ungroup() %>% 
+  select(continent,location,total_deaths)
+
+```
+
+Row {data-height=500}
+-----------------------------------------------------------------------
+
+### Total Deaths
+
+```{r}
+
+highchart() %>%
+  hc_chart(type = 'packedbubble') %>%
+  hc_add_theme(hc_theme_flatdark()) %>% 
+  hc_tooltip(useHTML = T, pointFormat = '{point.name}: {point.value}') %>%
+  hc_plotOptions(packedbubble = list(
+    dataLabels = list(enabled=T,
+                      format= '{point.name}'),
+    minSize = '20%',
+    maxSize = '50%',
+    zMin = 0,
+    zMax = 1000,
+    layoutAlgorithm = list(
+      gravitationalConstant = 0.10,
+      splitSeries = T,
+      seriesInteraction = F,
+      dragBetweenSeries = T,
+      parentNodeLimit = T
+    )
+  )
+  ) %>%
+  hc_legend(enabled = T) %>%
+  hc_exporting(enabled = F) %>%
+  hc_add_series(name = 'Asia', 
+                data = 
+                  purrr::map(seq(nrow(deaths %>% filter(continent=='Asia'))), function(x) {
+                    list(name = deaths %>% filter(continent=='Asia') %>% .[x,2] %>% pull(),
+                         value = deaths %>% filter(continent=='Asia') %>% .[x,3] %>% pull(),
+                         description = 'Asia')
+                  })
+  ) %>%
+  hc_add_series(name = 'Europe', 
+                data = 
+                  purrr::map(seq(nrow(deaths %>% filter(continent=='Europe'))), function(x) {
+                    list(name = deaths %>% filter(continent=='Europe') %>% .[x,2] %>% pull(),
+                         value = deaths %>% filter(continent=='Europe') %>% .[x,3] %>% pull(),
+                         description = 'Europe')
+                  })
+  ) %>%
+  hc_add_series(name = 'Africa', 
+                data = 
+                  purrr::map(seq(nrow(deaths %>% filter(continent=='Africa'))), function(x) {
+                    list(name = deaths %>% filter(continent=='Africa') %>% .[x,2] %>% pull(),
+                         value = deaths %>% filter(continent=='Africa') %>% .[x,3] %>% pull(),
+                         description = 'Africa')
+                  })
+  ) %>% 
+  hc_add_series(name = 'North America', 
+                data = 
+                  purrr::map(seq(nrow(deaths %>% filter(continent=='North America'))), function(x) {
+                    list(name = deaths %>% filter(continent=='North America') %>% .[x,2] %>% pull(),
+                         value = deaths %>% filter(continent=='North America') %>% .[x,3] %>% pull(),
+                         description = 'North America')
+                  })
+  ) %>% 
+  hc_add_series(name = 'South America', 
+                data = 
+                  purrr::map(seq(nrow(deaths %>% filter(continent=='South America'))), function(x) {
+                    list(name = deaths %>% filter(continent=='South America') %>% .[x,2] %>% pull(),
+                         value = deaths %>% filter(continent=='South America') %>% .[x,3] %>% pull(),
+                         description = 'South America')
+                  })
+  ) %>% 
+  hc_add_series(name = 'Oceania', 
+                data = 
+                  purrr::map(seq(nrow(deaths %>% filter(continent=='Oceania'))), function(x) {
+                    list(name = deaths %>% filter(continent=='Oceania') %>% .[x,2] %>% pull(),
+                         value = deaths %>% filter(continent=='Oceania') %>% .[x,3] %>% pull(),
+                         description = 'Oceania')
+                  })
+  )
+
+```
+
+
+Row {data-height=500}
+-----------------------------------------------------------------------
+
+### General view
+
+```{r}
+highchart() %>% hc_chart(type= 'spline',
+                         parallelCoordinates=T,
+                         parallelAxes=list(
+                           lineWidth= 5
+                         )) %>% 
+  hc_xAxis(categories=colnames(parrr[2:15]),offset=10) %>% 
+  hc_yAxis_multiples( list(min= 0,tooltipValueFormat= '{value}'),
+                     list(min= 0,tooltipValueFormat= '{value}'),
+                     list(min= 0,tooltipValueFormat= '{value}'),
+                     list(min= 0,tooltipValueFormat= '{value}'),
+                     list(min= 0,tooltipValueFormat= '{value}'),
+                     list(min= 0,tooltipValueFormat= '{value}'),
+                     list(min= 0,tooltipValueFormat= '{value}'),
+                     list(min= 0,tooltipValueFormat= '{value}'),
+                     list(min= 0,tooltipValueFormat= '{value}'),
+                     list(min= 0,tooltipValueFormat= '{value}'),
+                     list(min= 0,tooltipValueFormat= '{value}'),
+                     list(min= 0,tooltipValueFormat= '{value}'),
+                     list(min= 0,tooltipValueFormat= '{value}'),
+                     list(min= 0,tooltipValueFormat= '{value}')) %>% 
+  hc_colors('rgba(14, 200, 200, 0.2)') %>% 
+  hc_add_theme(hc_theme_google()) %>% 
+  hc_plotOptions(series = list(marker = list(enabled = F))) %>% 
+  hc_add_series_list(parrr2) %>% 
+  hc_plotOptions(
+    series=list(
+      animation=F,
+      marker=list(
+        enabled=F,
+        states=list(
+          hover=list(
+            enabled=F
+          )
+        )
+      ),
+      states= list(
+        hover=list(
+          halo=list(
+            size= 0
+          )
+        )
+      )
+    ) )
+```
+
+### New cases
+
+```{r}
+hchart(covid2, "streamgraph", hcaes(date, new_cases, group = location)) %>% 
+  hc_yAxis(visible = FALSE) %>% 
+  hc_plotOptions(series = list(label = list(minFontSize=2,enabled=T,
+                                            maxFontSize=15,style= list(color= 'white'),
+                                            fontWeight='bold'))) %>% 
+  hc_legend(enabled=F)  %>% hc_yAxis(visible=F,startOnTick=F,endOnTick=F) %>% 
+  hc_xAxis(maxPadding= 0,lineWidth= 0,margin= 0,tickWidth= 0,crosshair=T) %>% 
+  hc_annotations(labels= list(point=list(x=61,xAxis= 0, y= 600, yAxis= 0),
+           text='The first case in Azerbaijan'),
+           labelOptions=list(backgroundColor= 'rgba(255,255,255,0.5)',
+                             borderColor= 'silver')) %>% 
+  #hc_title(text=paste('New cases ',max(covid2$date, na.rm = T))) %>% 
+  hc_add_theme(hc_theme_google())
+
+```
+
+
+
+
+
