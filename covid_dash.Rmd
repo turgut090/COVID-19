@@ -3,6 +3,7 @@ title: "Covid-19"
 output: 
   flexdashboard::flex_dashboard:
     orientation: rows
+    vertical_layout: scroll
     theme: bootstrap
 ---
 
@@ -35,7 +36,10 @@ deaths = covid %>% group_by(location) %>%
 
 ```
 
-Row {data-height=500}
+Worldwide
+=====================================  
+
+Row {data-height=420}
 -----------------------------------------------------------------------
 
 ### Total Deaths
@@ -116,7 +120,7 @@ highchart() %>%
 ```
 
 
-Row {data-height=500}
+Row {data-height=350}
 -----------------------------------------------------------------------
 
 ### General view
