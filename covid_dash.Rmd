@@ -11,6 +11,7 @@ output:
 ```{r setup, include=FALSE}
 library(dplyr)
 library(highcharter)
+library(reshape2)
 covid = data.table::fread('https://covid.ourworldindata.org/data/owid-covid-data.csv') %>% 
   mutate(date = as.Date(date)) %>% filter(!location %in% c('World','International'))
 covid2= covid %>% filter(total_cases > 15e3)
@@ -33,6 +34,144 @@ deaths = covid %>% group_by(location) %>%
   arrange(desc(date)) %>% 
   slice(1) %>% ungroup() %>% 
   select(continent,location,total_deaths)
+
+total = data.table::fread('files/total.csv')
+prediction = data.table::fread('files/prediction.csv') %>% mutate(Date = as.Date(Date))
+imp = data.table::fread('files/imp.csv')
+
+```
+
+Azerbaijan
+=====================================  
+
+Row {data-height=300}
+-----------------------------------------------------------------------
+
+### Monthly minimum and maximum
+
+```{r}
+min_month = total[1:132] %>% select(date,value,new_deaths,daily_test) %>% 
+  group_by(lubridate::month(date)) %>% 
+  summarise_all(list(min)) %>% .[2:5]
+
+names(min_month)[2:4]=paste('min',names(min_month)[2:4],sep='_')
+
+max_month = total[1:132] %>% select(date,value,new_deaths,daily_test) %>% 
+  group_by(lubridate::month(date)) %>% 
+  summarise_all(list(max)) %>% .[2:5]
+
+names(max_month)[2:4]=paste('max',names(max_month)[2:4],sep='_')
+
+all_month = cbind(min_month[2:4],max_month) %>% select(date,everything()) 
+all_month$date = seq(as.Date('2020-03-01'),as.Date('2020-07-01'),'month')
+
+
+hchart(all_month, type = "columnrange",name = 'New cases',
+       color='red',
+       hcaes(x = date, low = min_value, high = max_value)) %>% 
+  hc_yAxis(title=list(text='Monthly New Cases')) %>% 
+  hc_xAxis(title=list(text='Date'),
+           labels=list(
+             formatter = JS("
+                            function() {
+          return Highcharts.dateFormat('%b', this.value);
+        }
+                            ")
+           )) %>% 
+  hc_plotOptions(columnrange = list(dataLabels = list(
+    enabled=T,
+    #format= '{y} new cases',
+    formatter = JS("
+                   function() {
+            if (this.y === this.point.low) {
+              return 'min: ' + this.y;
+            }
+            if (this.y === this.point.high) {
+              return 'max: ' + this.y;
+            }
+            return 'blah';
+          }
+                   ")
+  ))) %>% hc_chart(inverted=T) %>% hc_add_theme(hc_theme_google())
+
+```
+
+
+### Daily new and death cases
+
+```{r}
+
+tot <- melt(total %>% select(date,value,new_deaths) %>% 
+              rename(new_cases = value) %>% filter(date<='2020-07-20'), id="date")
+hchart(tot,'areaspline',hcaes(x = date, y = value, group = variable)) %>% 
+  hc_tooltip(crosshairs = TRUE, backgroundColor = "#FCFFC5",
+             shared = TRUE, borderWidth = 5) %>% 
+  hc_colors(c("#000000", "red")) %>% 
+  hc_title(align = "left", style = list(color = "black")) %>% 
+  hc_plotOptions(series = list(marker = list(enabled = FALSE))) %>% 
+  hc_tooltip(sort = TRUE, table = TRUE) %>% 
+  hc_legend(align = "right", verticalAlign = "top", layout = "horizontal") %>% 
+  hc_xAxis(
+    opposite = TRUE,
+    gridLineWidth = 0,
+    title = list(text = "Date", style = list(color = "black")),
+    lineColor = "black", tickColor = "black",
+    labels = list(style = list(color = "black"))
+  ) %>% 
+  hc_yAxis(
+    reversed = TRUE, 
+    gridLineWidth = 0, 
+    lineWidth = 1,
+    lineColor = "black",
+    tickWidth = 1,
+    tickLength = 10, 
+    tickColor = "black",
+    title = list(text = "New cases & Death rate", style = list(color = "black")),
+    labels = list(style = list(color = "black"))
+  ) %>% 
+  hc_add_theme(hc_theme_google()) %>% hc_title(text='')
+
+```
+
+
+
+Row {data-height=350}
+-----------------------------------------------------------------------
+
+### Future prediction
+
+```{r}
+
+df_m <- melt(prediction, id="Date")
+
+hchart(df_m, "line", hcaes(x = Date, y = value, group = variable)) %>% 
+  hc_tooltip(crosshairs = TRUE, backgroundColor = "#FCFFC5",
+             shared = TRUE, borderWidth = 5)  %>% hc_colors(c('red','darkgreen')) %>% 
+  hc_xAxis(
+    opposite = F,
+    plotLines = list(
+      list(label = list(text = "Test data",rotation=90, textAlign = 'left'),
+           color = "#FCFFC5",
+           width = 2,
+           from = datetime_to_timestamp(as.Date('2020-07-14',tz='UTC')),
+           to = datetime_to_timestamp(as.Date('2020-07-20',tz='UTC'))
+      ),
+      list(label = list(text = "Train data",rotation=90, textAlign = 'left'),
+           color = "#ffcccc",
+           width = 2,
+           from = datetime_to_timestamp(as.Date('2020-03-11',tz='UTC')),
+           to = datetime_to_timestamp(as.Date('2020-07-13',tz='UTC'))
+      ),
+      list(label = list(text = "Prediction",rotation=90, textAlign = 'left'),
+           color = "#ccff99",
+           width = 2,
+           from = datetime_to_timestamp(as.Date('2020-07-21',tz='UTC')),
+           to = datetime_to_timestamp(as.Date('2020-08-05',tz='UTC'))
+      )
+    )
+  ) %>% 
+  hc_add_theme(hc_theme_google())
+
 
 ```
 
@@ -186,11 +325,8 @@ hchart(covid2, "streamgraph", hcaes(date, new_cases, group = location)) %>%
            labelOptions=list(backgroundColor= 'rgba(255,255,255,0.5)',
                              borderColor= 'silver')) %>% 
   #hc_title(text=paste('New cases ',max(covid2$date, na.rm = T))) %>% 
-  hc_add_theme(hc_theme_google())
+  hc_add_theme(hc_theme_google()) %>% 
+  hc_colors(colors = scales::viridis_pal(option = "B", end = 0.7)(covid2$location %>% unique() %>% length()))
 
 ```
-
-
-
-
 
