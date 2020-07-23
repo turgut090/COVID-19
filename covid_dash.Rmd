@@ -181,7 +181,7 @@ The prediction was made by Neural Networks.
 
 There is an experimental prediction part for daily COVID-19 cases:
 
-1) It covers the period from March till July 22
+1) It covers the period from March 11 till July 22
 
 2) The model needs more fresh data to get better
 
