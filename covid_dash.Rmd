@@ -37,7 +37,7 @@ deaths = covid %>% group_by(location) %>%
 
 total = data.table::fread('files/total.csv')
 prediction = data.table::fread('files/prediction.csv') %>% mutate(Date = as.Date(Date))
-imp = data.table::fread('files/imp.csv')
+imp = data.table::fread('files/imp.csv') %>% mutate( relative_importance = round( relative_importance,3))
 
 ```
 
@@ -135,7 +135,7 @@ hchart(tot,'areaspline',hcaes(x = date, y = value, group = variable)) %>%
 
 
 
-Row {data-height=350}
+Row {.tabset data-height=350}
 -----------------------------------------------------------------------
 
 ### Future prediction
@@ -153,26 +153,47 @@ hchart(df_m, "line", hcaes(x = Date, y = value, group = variable)) %>%
       list(label = list(text = "Test data",rotation=90, textAlign = 'left'),
            color = "#FCFFC5",
            width = 2,
-           from = datetime_to_timestamp(as.Date('2020-07-14',tz='UTC')),
-           to = datetime_to_timestamp(as.Date('2020-07-20',tz='UTC'))
+           from = datetime_to_timestamp(as.Date('2020-07-05',tz='UTC')),
+           to = datetime_to_timestamp(as.Date('2020-07-22',tz='UTC'))
       ),
       list(label = list(text = "Train data",rotation=90, textAlign = 'left'),
            color = "#ffcccc",
            width = 2,
            from = datetime_to_timestamp(as.Date('2020-03-11',tz='UTC')),
-           to = datetime_to_timestamp(as.Date('2020-07-13',tz='UTC'))
+           to = datetime_to_timestamp(as.Date('2020-07-04',tz='UTC'))
       ),
       list(label = list(text = "Prediction",rotation=90, textAlign = 'left'),
            color = "#ccff99",
            width = 2,
-           from = datetime_to_timestamp(as.Date('2020-07-21',tz='UTC')),
-           to = datetime_to_timestamp(as.Date('2020-08-05',tz='UTC'))
+           from = datetime_to_timestamp(as.Date('2020-07-23',tz='UTC')),
+           to = datetime_to_timestamp(as.Date('2020-09-30',tz='UTC'))
       )
     )
   ) %>% 
   hc_add_theme(hc_theme_google())
 
 
+```
+
+### Explanation
+
+The prediction was made by Neural Networks.
+
+There is an experimental prediction part for daily COVID-19 cases:
+
+1) It covers the period from March till July 22
+
+2) The model needs more fresh data to get better
+
+3) Besides daily cases, we included valuable attributes such as SMS permission, traffic/subway/bus, and other restrictions.
+
+SMS permission and its restriction time (2-3 hours) are among the topmost important variables. 
+
+### Top important vars
+
+```{r}
+hchart(imp, "treemap", hcaes(x = variable, value = relative_importance,color= 20:1)) %>% 
+  hc_legend(enabled=F)
 ```
 
 Worldwide
