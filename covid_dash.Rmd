@@ -13,6 +13,8 @@ library(dplyr)
 library(highcharter)
 library(reshape2)
 library(flexdashboard)
+library(janitor)
+
 covid = data.table::fread('https://covid.ourworldindata.org/data/owid-covid-data.csv') %>% 
   mutate(date = as.Date(date)) %>% filter(!location %in% c('World','International'))
 covid2= covid %>% filter(total_cases > 15e3)
@@ -36,7 +38,7 @@ deaths = covid %>% group_by(location) %>%
   slice(1) %>% ungroup() %>% 
   select(continent,location,total_deaths)
 
-total = data.table::fread('files/total.csv')
+#total = data.table::fread('files/total.csv')
 prediction = data.table::fread('files/prediction.csv') %>% mutate(Date = as.Date(Date))
 imp = data.table::fread('files/imp.csv') %>% mutate( relative_importance = round( relative_importance,3))
 
@@ -100,20 +102,57 @@ Row {data-height=300}
 ### Monthly minimum and maximum
 
 ```{r}
-min_month = total[1:132] %>% select(date,value,new_deaths,daily_test) %>% 
+covid = data.table::fread('https://covid.ourworldindata.org/data/owid-covid-data.csv') %>% 
+  mutate(date = as.Date(date)) %>% filter(!location %in% c('World','International')) %>% 
+  filter(location %in% 'Azerbaijan') %>% select(-c(1:3),-contains('test')) %>% 
+  mutate(date=lag(date)) %>% filter(date >= '2020-03-11') 
+
+covid$new_cases[100]=438
+covid$new_cases[101]=471
+
+covid = covid %>% mutate(new_cases = case_when(
+  date == '2020-03-12' ~ 4,
+  date == '2020-03-15' ~ 3,
+  date == '2020-03-16' ~ 3,
+  date == '2020-03-20' ~ 4,
+  TRUE ~ new_cases
+)) %>% rbind(covid[3,] %>% mutate(date = as.Date('2020-03-14'),
+                                  new_cases = 19) ) 
+
+#covid = covid %>% mutate(#new_cases = lag(new_cases,10)
+#                         date = date - 3)
+
+total = covid %>% select(-contains('total')) 
+names(total)[2]='value'
+
+total = Filter(function(x)(length(unique(x))>1), total) 
+
+
+total = total %>% arrange(date) 
+
+total$value[69]=113
+total$value[70]=131
+
+min_month = total %>% select(date,value,new_deaths) %>% 
   group_by(lubridate::month(date)) %>% 
-  summarise_all(list(min)) %>% .[2:5]
+  summarise_all(list(min)) %>% .[2:4]
 
-names(min_month)[2:4]=paste('min',names(min_month)[2:4],sep='_')
+names(min_month)[2:3]=paste('min',names(min_month)[2:3],sep='_')
 
-max_month = total[1:132] %>% select(date,value,new_deaths,daily_test) %>% 
+max_month = total %>% select(date,value,new_deaths) %>% 
   group_by(lubridate::month(date)) %>% 
-  summarise_all(list(max)) %>% .[2:5]
+  summarise_all(list(max)) %>% .[2:4]
 
-names(max_month)[2:4]=paste('max',names(max_month)[2:4],sep='_')
+names(max_month)[2:3]=paste('max',names(max_month)[2:3],sep='_')
 
-all_month = cbind(min_month[2:4],max_month) %>% select(date,everything()) 
-all_month$date = seq(as.Date('2020-03-01'),as.Date('2020-07-01'),'month')
+all_month = cbind(min_month[2:3],max_month) %>% select(date,everything()) 
+
+date_len = lubridate::month(all_month$date)
+
+
+
+all_month$date = seq(as.Date(paste('2020-0', min(date_len),'-01',sep = '')),
+                     as.Date(paste('2020-0', max(date_len),'-01',sep = '')),'month')
 
 
 hchart(all_month, type = "columnrange",name = 'New cases',
@@ -143,7 +182,6 @@ hchart(all_month, type = "columnrange",name = 'New cases',
           }
                    ")
   ))) %>% hc_chart(inverted=T) %>% hc_add_theme(hc_theme_google())
-
 ```
 
 
@@ -151,8 +189,43 @@ hchart(all_month, type = "columnrange",name = 'New cases',
 
 ```{r}
 
+covid = data.table::fread('https://covid.ourworldindata.org/data/owid-covid-data.csv') %>% 
+  mutate(date = as.Date(date)) %>% filter(!location %in% c('World','International')) %>% 
+  filter(location %in% 'Azerbaijan') %>% select(-c(1:3),-contains('test')) %>% 
+  mutate(date=lag(date)) %>% filter(date >= '2020-03-11') 
+
+covid$new_cases[100]=438
+covid$new_cases[101]=471
+
+covid = covid %>% mutate(new_cases = case_when(
+  date == '2020-03-12' ~ 4,
+  date == '2020-03-15' ~ 3,
+  date == '2020-03-16' ~ 3,
+  date == '2020-03-20' ~ 4,
+  TRUE ~ new_cases
+)) %>% rbind(covid[3,] %>% mutate(date = as.Date('2020-03-14'),
+                                  new_cases = 19) ) 
+
+#covid = covid %>% mutate(#new_cases = lag(new_cases,10)
+#                         date = date - 3)
+
+total = covid %>% select(-contains('total')) 
+names(total)[2]='value'
+
+total = Filter(function(x)(length(unique(x))>1), total) 
+
+
+total = total %>% arrange(date) 
+
+total$value[69]=113
+total$value[70]=131
+
+
 tot <- melt(total %>% select(date,value,new_deaths) %>% 
-              rename(new_cases = value) %>% filter(date<='2020-07-20'), id="date")
+              rename(new_cases = value), id="date")
+
+
+
 hchart(tot,'areaspline',hcaes(x = date, y = value, group = variable)) %>% 
   hc_tooltip(crosshairs = TRUE, backgroundColor = "#FCFFC5",
              shared = TRUE, borderWidth = 5) %>% 
