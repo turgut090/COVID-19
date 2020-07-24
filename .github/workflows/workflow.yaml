@@ -28,7 +28,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          Rscript -e "install.packages(c('dplyr','rmarkdown','devtools','flexdashboard','scales', 'reshape2'))"
+          Rscript -e "install.packages(c('dplyr','rmarkdown','devtools','flexdashboard','scales', 'reshape2','janitor'))"
           Rscript -e "devtools::install_github('jbkunst/highcharter')"
           
       - name: Render Rmd files from _posts
