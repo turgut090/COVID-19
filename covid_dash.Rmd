@@ -14,6 +14,11 @@ library(highcharter)
 library(reshape2)
 library(flexdashboard)
 library(janitor)
+library(leaflet)
+library(viridis)
+library(rgdal)
+library(stringr)
+library(openxlsx)
 
 covid = data.table::fread('https://covid.ourworldindata.org/data/owid-covid-data.csv') %>% 
   mutate(date = as.Date(date)) %>% filter(!location %in% c('World','International'))
@@ -49,7 +54,20 @@ today = data.table::fread('https://covid.ourworldindata.org/data/owid-covid-data
   mutate(date=lag(date)) %>% filter(date >= '2020-03-11') %>% 
   .[nrow(.),] %>% .[,1:5]
 
+
+gender = openxlsx::read.xlsx('files/gender.xlsx')
+
+districts = openxlsx::read.xlsx('files/Districts.xlsx')
+districts$Latitude=districts$Latitude %>% stringr::str_squish() %>% as.numeric()
+districts$Longitude=districts$Longitude %>% as.numeric()
+
+age = openxlsx::read.xlsx('files/age.xlsx') %>% mutate(count = count *100)
+region=openxlsx::read.xlsx('files/Regions.xlsx') %>% filter(!Regions %in% 'Ölkə xarici')
+az <- rgdal::readOGR("https://raw.githubusercontent.com/deldersveld/topojson/master/countries/azerbaijan/azerbaijan-regions.json")
+
 ```
+
+
 
 Azerbaijan
 =====================================  
@@ -95,6 +113,154 @@ valueBox(new_deaths,
          icon = "fa-exclamation-circle",
          color = "danger")
 ```
+
+Row {.tabset data-height=400}
+-----------------------------------------------------------------------
+
+### COVID in Regions
+
+```{r}
+
+pal <- colorNumeric("viridis", NULL)
+
+cnt = region$count
+az@data[["ID_1"]] = c(cnt[1]+cnt[2],cnt[3],cnt[8],cnt[4],0,cnt[5],cnt[10],cnt[6],cnt[7],cnt[9])
+
+leaflet(az) %>%
+  addTiles() %>%
+  addPolygons(stroke = FALSE, smoothFactor = 0.3, fillOpacity = 1,
+              fillColor = ~pal(ID_1),
+              label = ~paste0(NAME_1, ": ", format(ID_1, big.mark = ","))) %>% 
+  addLegend(pal = pal, values = ~ID_1, opacity = 1.0,
+            title = "Covid-19 cases") 
+
+
+```
+
+
+### Baku districts
+
+```{r}
+leaflet(az) %>%
+  addTiles() %>%
+  addPolygons(stroke = FALSE, smoothFactor = 0.3, fillOpacity = 1,
+              fillColor = ~pal(ID_1)) %>% 
+  #addLegend(pal = pal, values = ~ID_1, opacity = 1.0,
+  #                     title = "Covid-19 cases") %>% 
+  addMarkers(lat=districts$Latitude[3], lng=districts$Longitude[3], popup="Yasamal district",
+             labelOptions = labelOptions(noHide = T, textsize = "10px"),
+             label = ~as.character(paste('Yasamal district','-' ,districts$count[3]))) %>% 
+  
+  addMarkers(lat=districts$Latitude[1], lng=districts$Longitude[1], popup="Binagadi district",
+             labelOptions = labelOptions(noHide = T, textsize = "10px"),
+             label = ~as.character(paste('Binagadi district','-' ,districts$count[1]))) %>% 
+  
+  addMarkers(lat=districts$Latitude[2], lng=districts$Longitude[2],popup="Khatai district",
+             labelOptions = labelOptions(noHide = T, textsize = "10px"),
+             label = ~as.character(paste('Khatai district','-' ,districts$count[2]))) %>% 
+  
+  addMarkers(lat=districts$Latitude[4], lng=districts$Longitude[4], popup="Sabunchu district",
+             labelOptions = labelOptions(noHide = T, textsize = "10px"),
+             label = ~as.character(paste('Sabunchu district','-' ,districts$count[4]))) %>% 
+  
+  addMarkers(lat=districts$Latitude[5], lng=districts$Longitude[5], popup="Nasimi district",
+             labelOptions = labelOptions(noHide = T, textsize = "10px"),
+             label = ~as.character(paste('Nasimi district','-' ,districts$count[5]))) %>% 
+  
+  addMarkers(lat=districts$Latitude[6], lng=districts$Longitude[6], popup="Narimanov district",
+             labelOptions = labelOptions(noHide = T, textsize = "10px"),
+             label = ~as.character(paste('Narimanov district','-' ,districts$count[6]))) %>% 
+  
+  addMarkers(lat=districts$Latitude[7], lng=districts$Longitude[7], popup="Surakhani district",
+             labelOptions = labelOptions(noHide = T, textsize = "10px"),
+             label = ~as.character(paste('Surakhani district','-' ,districts$count[7]))) %>% 
+  
+  addMarkers(lat=districts$Latitude[8], lng=districts$Longitude[8], popup="Nizami district",
+             labelOptions = labelOptions(noHide = T, textsize = "10px"),
+             label = ~as.character(paste('Nizami district','-' ,districts$count[8]))) %>% 
+  
+  addMarkers(lat=districts$Latitude[9], lng=districts$Longitude[9], popup="Garadagh district",
+             labelOptions = labelOptions(noHide = T, textsize = "10px"),
+             label = ~as.character(paste('Garadagh district','-' ,districts$count[9]))) %>% 
+  
+  addMarkers(lat=districts$Latitude[10], lng=districts$Longitude[10], popup="Sabail district",
+             labelOptions = labelOptions(noHide = T, textsize = "10px"),
+             label = ~as.character(paste('Sabail district','-' ,districts$count[10]))) %>% 
+  
+  addMarkers(lat=districts$Latitude[11], lng=districts$Longitude[11], popup="Khazar district",
+             labelOptions = labelOptions(noHide = T, textsize = "10px"),
+             label = ~as.character(paste('Khazar district','-' ,districts$count[11]))) %>% 
+  
+  addMarkers(lat=districts$Latitude[12], lng=districts$Longitude[12], popup="Pirallahy district",
+             labelOptions = labelOptions(noHide = T, textsize = "10px"),
+             label = ~as.character(paste('Pirallahy district','-' ,districts$count[12]))) %>% 
+
+  setView(lng = 49.8, lat = 40.4, zoom = 10.2)
+```
+
+### Gender
+
+```{r}
+
+highchart() %>% 
+  # add the module
+  hc_add_dependency("modules/pattern-fill.js") %>% 
+  hc_xAxis(type = 'category') %>% 
+  hc_yAxis(labels=list( format= '{value}%')) %>% 
+  hc_tooltip(
+    borderColor = "#CACACA",
+    pointFormat = 'Covid cases for <b>{point.name}</b> is <b>{point.y} %</b>'
+  ) %>% 
+  hc_add_series(
+    type = "column",
+    showInLegend = FALSE,
+    pointWidth = 110,
+    pointPadding = 0.25,
+    borderColor = "transparent",
+    borderWidth = 0,
+    data = list(
+      list(
+        name = "Male",
+        y = gender$count[1]*100,
+        color = list(
+          pattern = list(
+            image = 'https://www.svgrepo.com/show/59771/male.svg',
+            aspectRatio = 0.5
+          )
+        )
+      ),
+      list(
+        name = 'Female',
+        y = gender$count[2]*100,
+        color = list(
+          pattern = list(
+            image = 'https://www.svgrepo.com/show/82208/female-avatar.svg',
+            aspectRatio = 0.5
+          )
+        )
+      )
+    )
+  )
+```
+
+
+### Age groups
+
+```{r}
+highchart() %>% 
+  hc_chart(type='item') %>% 
+  hc_add_series(data = purrr::map(seq(nrow(age)), function(x) {
+    list(age[x,1],age[x,2])
+  }), dataLabels=list(enabled=T),
+  name= 'The number is',
+  keys=list('name', 'y', 'color', 'label'),
+                center= list('50%', '88%'),
+                size= '170%',
+                startAngle= -100,
+                endAngle= 100) %>% hc_legend(labelFormat='{name} <span style="opacity: 0.4">{y}</span>') %>% 
+  hc_add_theme(hc_theme_ggplot2())
+```
+
 
 Row {data-height=300}
 -----------------------------------------------------------------------
