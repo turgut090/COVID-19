@@ -253,12 +253,14 @@ highchart() %>%
     list(age[x,1],age[x,2])
   }), dataLabels=list(enabled=T),
   name= 'The number is',
-  keys=list('name', 'y', 'color', 'label'),
+  keys=list('name', 'y'),
                 center= list('50%', '88%'),
                 size= '170%',
                 startAngle= -100,
-                endAngle= 100) %>% hc_legend(labelFormat='{name} <span style="opacity: 0.4">{y}</span>') %>% 
-  hc_add_theme(hc_theme_ggplot2())
+                endAngle= 100) %>% 
+  hc_legend(labelFormat='{name} <span style="opacity: 0.4">{y} %</span>') %>% 
+  hc_add_theme(hc_theme_ggplot2()) %>% 
+  hc_tooltip(valueSuffix = " %")
 ```
 
 
