@@ -2,7 +2,7 @@ on:
   push:
   schedule:
       # * is a special character in YAML so you have to quote this string
-      - cron:  '*/59 * * * *'
+      - cron:  '0 2,5,8,11,14,17,20,23 * * *'
 
 name: R-CMD
 
@@ -17,7 +17,7 @@ jobs:
       fail-fast: false
       matrix:
         config:
-        - { os: macOS-latest }
+        - { os: windows-latest }
 
     steps:
       - uses: actions/checkout@v1
@@ -29,8 +29,13 @@ jobs:
       - name: Install dependencies
         run: |
           Rscript -e "install.packages(c('dplyr','rmarkdown','devtools','flexdashboard','scales', 'reshape2','janitor'))"
+<<<<<<< HEAD
           Rscript -e "install.packages(c('viridis','rgdal','leaflet','rgdal','openxlsx','htmltools','shiny'))"
           Rscript -e "devtools::install_github('jbkunst/highcharter')"
+=======
+          Rscript -e "install.packages(c('viridis','rgdal','leaflet','rgdal','openxlsx'))"
+          Rscript -e "install.packages('highcharter')"
+>>>>>>> f39c97fba48349f7840d2283cd4665d537c03034
           
       - name: Render Rmd files from _posts
         run: |
