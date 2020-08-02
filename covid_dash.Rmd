@@ -65,6 +65,7 @@ age = openxlsx::read.xlsx('files/age.xlsx') %>% mutate(count = count *100)
 region=openxlsx::read.xlsx('files/Regions.xlsx') %>% filter(!Regions %in% 'Ölkə xarici')
 az <- rgdal::readOGR("https://raw.githubusercontent.com/deldersveld/topojson/master/countries/azerbaijan/azerbaijan-regions.json")
 
+
 ```
 
 
@@ -571,7 +572,7 @@ highchart() %>%
 ```
 
 
-Row {data-height=350}
+Row {data-height=380}
 -----------------------------------------------------------------------
 
 ### General view
@@ -638,7 +639,8 @@ hchart(covid2, "streamgraph", hcaes(date, new_cases, group = location)) %>%
                              borderColor= 'silver')) %>% 
   #hc_title(text=paste('New cases ',max(covid2$date, na.rm = T))) %>% 
   hc_add_theme(hc_theme_google()) %>% 
-  hc_colors(colors = scales::viridis_pal(option = "B", end = 0.7)(covid2$location %>% unique() %>% length()))
+  hc_colors(colors = scales::viridis_pal(option = "B", end = 0.7)(covid2$location %>% unique() %>% length())) %>% 
+  hc_tooltip(table = TRUE, outside = TRUE)
 
 ```
 
