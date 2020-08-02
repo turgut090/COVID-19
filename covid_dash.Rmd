@@ -623,10 +623,19 @@ highchart() %>% hc_chart(type= 'spline',
     ) )
 ```
 
-### New cases
+### New cases TOP 10
 
 ```{r}
-hchart(covid2, "streamgraph", hcaes(date, new_cases, group = location)) %>% 
+covid2 %>% group_by(location) %>% 
+  arrange(desc(date)) %>% 
+  slice(1) %>% ungroup() %>% 
+  select(-date) %>% 
+  arrange(desc(total_cases)) %>% 
+  .[1:10,] %>% pull(location)->top_10
+
+
+hchart(covid2 %>% filter(location %in% top_10),
+       "streamgraph", hcaes(date, new_cases, group = location)) %>% 
   hc_yAxis(visible = FALSE) %>% 
   hc_plotOptions(series = list(label = list(minFontSize=2,enabled=T,
                                             maxFontSize=15,style= list(color= 'white'),
@@ -634,12 +643,11 @@ hchart(covid2, "streamgraph", hcaes(date, new_cases, group = location)) %>%
   hc_legend(enabled=F)  %>% hc_yAxis(visible=F,startOnTick=F,endOnTick=F) %>% 
   hc_xAxis(maxPadding= 0,lineWidth= 0,margin= 0,tickWidth= 0,crosshair=T) %>% 
   hc_annotations(labels= list(point=list(x=61,xAxis= 0, y= 600, yAxis= 0),
-           text='The first case in Azerbaijan'),
-           labelOptions=list(backgroundColor= 'rgba(255,255,255,0.5)',
-                             borderColor= 'silver')) %>% 
+                              text='The first case in Azerbaijan'),
+                 labelOptions=list(backgroundColor= 'rgba(255,255,255,0.5)',
+                                   borderColor= 'silver')) %>% 
   #hc_title(text=paste('New cases ',max(covid2$date, na.rm = T))) %>% 
-  hc_add_theme(hc_theme_google()) %>% 
-  hc_colors(colors = scales::viridis_pal(option = "B", end = 0.7)(covid2$location %>% unique() %>% length())) %>% 
+  hc_colors(colors = scales::viridis_pal(option = "B", end = 0.3)(10)) %>% 
   hc_tooltip(table = TRUE, outside = TRUE)
 
 ```
