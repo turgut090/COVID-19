@@ -28,7 +28,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          Rscript -e "install.packages(c('dplyr','rmarkdown','devtools','flexdashboard','scales', 'reshape2','janitor'))"
+          Rscript -e "install.packages(c('dplyr','vctrs','rmarkdown','devtools','flexdashboard','scales', 'reshape2','janitor'))"
           Rscript -e "install.packages(c('viridis','rgdal','leaflet','rgdal','openxlsx'))"
           Rscript -e "install.packages('highcharter')"
 
